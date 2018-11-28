@@ -20,16 +20,8 @@
 #include "Adafruit_MQTT.h"
 #include "Adafruit_MQTT_Client.h"
 
-
-/************************* WiFi Access Point *********************************/
-#define WLAN_SSID       "PIANO9"
-#define WLAN_PASS       "Cipollina2002"
-
-/************************* Adafruit.io Setup *********************************/
-#define AIO_SERVER      "io.adafruit.com"
-#define AIO_SERVERPORT  1883                   // use 8883 for SSL
-#define AIO_USERNAME "AndyMilly"
-#define AIO_KEY "3648602c63ef49ad843ea6405f133ec7"
+/* For mockup of PrivateConstants see PrivateConstants_example.h*/
+#include "PrivateConstants.h"
 
 /********************************* MQTT Setup ********************************/
 // Create an ESP8266 WiFiClient 
@@ -41,8 +33,11 @@ Adafruit_MQTT_Client mqtt(&client, AIO_SERVER, AIO_SERVERPORT, AIO_USERNAME, AIO
 
 /****************************** Feeds ***************************************/
 // NOTICE: MQTT paths for AIO follow the form: <username>/feeds/<feedname>
-Adafruit_MQTT_Publish DataChannel = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/MD_Data");
-Adafruit_MQTT_Subscribe StatusChannel = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAME "/feeds/MD_Status");
+// PUBLISHING CHANNELS
+Adafruit_MQTT_Publish DataChannel = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/" DATA);
+
+// SUBSCRIBING CHANNELS
+Adafruit_MQTT_Subscribe StatusChannel = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAME "/feeds/" STATUS);
 
 /****************************** Support Variabled ***************************************/
 uint8_t detection = 0;
