@@ -23,6 +23,12 @@
 /* For mockup of PrivateConstants see PrivateConstants_example.h*/
 #include "PrivateConstants.h"
 
+/********************************* HC-SR501 Setup ********************************/
+#define MD_PIN D5
+#define LED_PIN D7
+volatile byte sensorvalue = 0;
+volatile byte changed = 0;
+
 /********************************* MQTT Setup ********************************/
 // Create an ESP8266 WiFiClient 
 WiFiClient client;            // Not secure
@@ -44,6 +50,7 @@ uint8_t detection = 0;
 uint8_t status = 1;
 
 /************************ Function prototypes ************************************/
+void OnMDInterrupt();
 void MQTT_connect();
 
 /********************************** Setup ****************************************/
@@ -53,6 +60,11 @@ void setup()
     // Serial setup and init
     Serial.begin(9600);
     delay(10);
+
+    // Sensor setup
+    pinMode(MD_PIN, INPUT);
+    pinMode(LED_PIN, OUTPUT);
+    attachInterrupt(digitalPinToInterrupt(MD_PIN), OnMDInterrupt, RISING);
 
     // Wifi Connection
     Serial.println(); Serial.println(); Serial.print("Connecting to ");
@@ -67,12 +79,10 @@ void setup()
     Serial.println("IP address: "); Serial.println(WiFi.localIP());
 
     // Setup MQTT subscription for onoff feed.
-    mqtt.subscribe(&StatusChannel);
-
-    // Setup random 
-    randomSeed(analogRead(0));
+    // mqtt.subscribe(&StatusChannel);
 }
 
+/********************************** Loop ****************************************/
 void loop() 
 {
     // Ensure the connection to the MQTT server is alive (this will make the first
@@ -81,39 +91,34 @@ void loop()
     MQTT_connect();
 
     // Reaction phase
-    Adafruit_MQTT_Subscribe *subscription;
-    while ((subscription = mqtt.readSubscription(5000)))
-    {
-        if (subscription == &StatusChannel) 
-        {
-            status = StatusChannel.lastread[0];
-            Serial.print(F("Got: "));
-            Serial.println((char *)StatusChannel.lastread);
-        }
-    }
-
-    // Detection phase!
-    if (random(0, 10) > 6)
-        detection = 1;
-    else
-        detection = 0;
+    // Adafruit_MQTT_Subscribe *subscription;
+    // while ((subscription = mqtt.readSubscription(5000)))
+    // {
+    //     if (subscription == &StatusChannel) 
+    //     {
+    //         status = StatusChannel.lastread[0];
+    //         Serial.print(F("Got: "));
+    //         Serial.println((char *)StatusChannel.lastread);
+    //     }
+    // }
 
     // Publication phase
-    if (status > 0)
+    if (changed)
     {
-        Serial.print(detection);
-        Serial.print("...");
-        if (! DataChannel.publish(detection))
-            Serial.println(F("Failed"));
+        if (status > 0)
+        {
+            if (! DataChannel.publish(1))
+                Serial.println(F("Failed"));
+            else
+                Serial.println(F("OK!"));
+            digitalWrite(LED_PIN, sensorvalue);
+            changed = 0;
+        }
         else
-            Serial.println(F("OK!"));
+            Serial.println("Offline Status");   
     }
-    else
-    {
-        Serial.println("Offline Status");   
-    }
-    
-    delay(5000);
+
+    delay(500);
 
     // ping the server to keep the mqtt connection alive
     // NOT required if you are publishing once every KEEPALIVE seconds
@@ -124,6 +129,11 @@ void loop()
     */
 }
 
+void OnMDInterrupt()
+{
+    sensorvalue = sensorvalue == 0 ? 1 : 0;
+    changed = true;
+}
 
 void MQTT_connect() 
 {
